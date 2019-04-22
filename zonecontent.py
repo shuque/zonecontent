@@ -71,25 +71,33 @@ class ZoneStats:
                 self.RRSET_NODNSSEC.get(rrset_data, 0) + 1
 
     def print_stats(self):
+        self.is_signed = 'NSEC' in self.RRTYPE or 'NSEC3' in self.RRTYPE
         print("Total RR     = {:15,}".format(self.counts['rr']))
-        print("Total RR     = {:15,} (minus DNSSEC)".format(
+        if self.is_signed:
+            print("Total RR     = {:15,} (minus DNSSEC)".format(
             self.counts['rr_no_dnssec']))
         print("Total RRsets = {:15,}".format(len(self.RRSET)))
-        print("Total RRsets = {:15,} (minus DNSSEC)".format(
+        if self.is_signed:
+            print("Total RRsets = {:15,} (minus DNSSEC)".format(
             len(self.RRSET_NODNSSEC)))
         print("Total Names  = {:15,}".format(len(self.RR)))
-        print("Total Names  = {:15,} (minus DNSSEC)".format(
-            len(self.RR)-self.RRTYPE['NSEC3']))
+        if self.is_signed and 'NSEC3' in self.RRTYPE:
+            print("Total Names  = {:15,} (minus DNSSEC)".format(
+                len(self.RR)-self.RRTYPE['NSEC3']))
         if self.counts['rr_tsig'] > 0:
             print("Total TSIGs  = {:15,}".format(self.counts['rr_tsig']))
         print("\nTTL (min, max, avg) = {}, {}, {}".format(
             self.ttl_min, self.ttl_max,
             int(self.sum_ttl * 1.0/ self.counts['rr'])))
-        print("\n%-15s %15s       %6s   %6s" % \
-              ("RRtype", "Count", "%", "%-non-dnssec"))
+        print("\n{:<15s} {:>15s}       {:>6s}".format(
+            "RRtype", "Count", "%"), end='')
+        if self.is_signed:
+            print("   {:>6s}".format("%-non-dnssec"))
+        else:
+            print('')
         for (key, keycount) in sorted(self.RRTYPE.items()):
             percent = 100.0 * keycount / (self.counts['rr'] * 1.0)
-            if key in dnssec_rrlist:
+            if key in dnssec_rrlist or not self.is_signed:
                 print("{:<15s} {:15,}      {:6.1f}%".format(
                     key, keycount, percent))
             else:
