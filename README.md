@@ -33,16 +33,18 @@ of 1 presentation format DNS RR per line, with no continuation lines.
 ```
 $ zonecontent huque.com
 
-### Zone: huque.com
+### Zone: huque.com.
 ### Source: zone transfer from: 127.0.0.1
-### Time: 2019-04-22T06:36EDT
+### Time: 2019-04-22T13:21EDT
 
-Total RR     =             572
-Total RR     =             199 (minus DNSSEC)
-Total RRsets =             468
-Total RRsets =             111 (minus DNSSEC)
-Total Names  =             227
-Total Names  =             100 (minus DNSSEC)
+RRs          =             572
+RRs          =             199 (minus DNSSEC)
+RRsets       =             468
+RRsets       =             111 (minus DNSSEC)
+Names        =             227
+Names        =             100 (minus DNSSEC)
+Wildcards    =               5
+Delegations  =               8
 
 TTL (min, max, avg) = 60, 86400, 23977
 

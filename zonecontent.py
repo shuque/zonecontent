@@ -6,7 +6,6 @@
 
 import os
 import sys
-import socket
 import time
 import getopt
 import subprocess
@@ -32,16 +31,19 @@ class ZoneStats:
 
     def __init__(self, name):
         self.zone = name
+        self.is_signed = None
         self.counts = {
             'rr': 0,
             'rr_no_dnssec': 0,
             'rr_tsig': 0,
             'rr_exclude_ttl': 0,
+            'rr_wild': 0,
             }
         self.RR = {}
         self.RRTYPE = {}
         self.RRSET = {}
         self.RRSET_NODNSSEC = {}
+        self.DELEG = {}
         self.ttl_max = -1
         self.ttl_min = 86400
         self.sum_ttl = 0
@@ -51,6 +53,8 @@ class ZoneStats:
         if rrtype == 'TSIG':
             self.counts['rr_tsig'] += 1
             return
+        if owner.startswith('*.') and rrtype != 'RRSIG':
+            self.counts['rr_wild'] += 1
         ttl = int(ttl)
         self.sum_ttl += ttl
         if not exclude_from_ttl_calc(rrtype, rdata):
@@ -69,6 +73,8 @@ class ZoneStats:
             self.counts['rr_no_dnssec'] += 1
             self.RRSET_NODNSSEC[rrset_data] = \
                 self.RRSET_NODNSSEC.get(rrset_data, 0) + 1
+        if rrtype == 'NS' and owner.lower() != self.zone.lower():
+            self.DELEG[owner] = self.DELEG.get(owner, 0) + 1
 
     def print_stats(self):
 
@@ -77,20 +83,22 @@ class ZoneStats:
             return
         self.is_signed = 'NSEC' in self.RRTYPE or 'NSEC3' in self.RRTYPE
 
-        print("Total RR     = {:15,}".format(self.counts['rr']))
+        print("RRs          = {:15,}".format(self.counts['rr']))
         if self.is_signed:
-            print("Total RR     = {:15,} (minus DNSSEC)".format(
-            self.counts['rr_no_dnssec']))
-        print("Total RRsets = {:15,}".format(len(self.RRSET)))
+            print("RRs          = {:15,} (minus DNSSEC)".format(
+                self.counts['rr_no_dnssec']))
+        print("RRsets       = {:15,}".format(len(self.RRSET)))
         if self.is_signed:
-            print("Total RRsets = {:15,} (minus DNSSEC)".format(
-            len(self.RRSET_NODNSSEC)))
-        print("Total Names  = {:15,}".format(len(self.RR)))
+            print("RRsets       = {:15,} (minus DNSSEC)".format(
+                len(self.RRSET_NODNSSEC)))
+        print("Names        = {:15,}".format(len(self.RR)))
         if self.is_signed and 'NSEC3' in self.RRTYPE:
-            print("Total Names  = {:15,} (minus DNSSEC)".format(
+            print("Names        = {:15,} (minus DNSSEC)".format(
                 len(self.RR)-self.RRTYPE['NSEC3']))
+        print("Wildcards    = {:15,}".format(self.counts['rr_wild']))
+        print("Delegations  = {:15,}".format(len(self.DELEG)))
         if self.counts['rr_tsig'] > 0:
-            print("Total TSIGs  = {:15,}".format(self.counts['rr_tsig']))
+            print("TSIGs        = {:15,}".format(self.counts['rr_tsig']))
         print("\nTTL (min, max, avg) = {}, {}, {}".format(
             self.ttl_min, self.ttl_max,
             int(self.sum_ttl * 1.0/ self.counts['rr'])))
@@ -170,8 +178,10 @@ def process_args(arguments):
     if len(args) != 1:
         usage("Error: zone name not specified")
     else:
-        Opts.zone = args[0]
-
+        if args[0].endswith('.'):
+            Opts.zone = args[0]
+        else:
+            Opts.zone = args[0] + '.'
     return
 
 
@@ -213,9 +223,8 @@ def make_dig_command(Opts):
 def get_input_stream(Opts):
     if Opts.infile:
         return open(Opts.infile, 'rb')
-    else:
-        return subprocess.Popen(make_dig_command(Opts),
-                                stdout=subprocess.PIPE).stdout
+    return subprocess.Popen(make_dig_command(Opts),
+                            stdout=subprocess.PIPE).stdout
 
 
 if __name__ == '__main__':
