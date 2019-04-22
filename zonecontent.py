@@ -71,7 +71,12 @@ class ZoneStats:
                 self.RRSET_NODNSSEC.get(rrset_data, 0) + 1
 
     def print_stats(self):
+
+        if self.counts['rr'] == 0:
+            print("ERROR: No zone data found.")
+            return
         self.is_signed = 'NSEC' in self.RRTYPE or 'NSEC3' in self.RRTYPE
+
         print("Total RR     = {:15,}".format(self.counts['rr']))
         if self.is_signed:
             print("Total RR     = {:15,} (minus DNSSEC)".format(
