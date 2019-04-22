@@ -113,6 +113,9 @@ Usage: {0} [Options] <zonename> ...
                       (default server is {1})
     --tsig=X          Use TSIG algorithm:name:key specified in X
     --infile=X        Use specified input file as zone contents
+
+If specifying an input file as the source of the zone, it must be composed
+of 1 presentation format DNS RR per line, with no continuation lines.
 """.format(os.path.basename(sys.argv[0]), DEFAULT_SERVER))
     sys.exit(1)
 

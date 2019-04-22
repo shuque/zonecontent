@@ -4,6 +4,10 @@ Summarize the contents of a DNS zone
 A small script to summarize the contents of a DNS zone, obtained
 via zone transfer from a specified server, or via a specified file.
 
+### Pre-requisites
+
+* Python 3
+* The 'dig' program that comes with ISC BIND
 
 ### Usage string
 
@@ -19,6 +23,9 @@ Usage: zonecontent.py [Options] <zonename> ...
                       (default server is 127.0.0.1)
     --tsig=X          Use TSIG algorithm:name:key specified in X
     --infile=X        Use specified input file as zone contents
+
+If specifying an input file as the source of the zone, it must be composed
+of 1 presentation format DNS RR per line, with no continuation lines.
 ```
 
 ### Example usage
