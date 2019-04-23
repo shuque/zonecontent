@@ -15,10 +15,13 @@ DEFAULT_SERVER = '127.0.0.1'
 
 class Opts:
     zone = None
+    summary = True
     verbose = False
     server = None
     tsig = None
     infile = None
+    print_rrtype = None
+    print_wildcard = False
 
 
 dnssec_rrlist = ['DNSKEY', 'DS', 'CDNSKEY', 'CDS', 'TYPE65534',
@@ -134,6 +137,12 @@ Usage: {0} [Options] <zonename> ...
                       (default server is {1})
     --tsig=X          Use TSIG algorithm:name:key specified in X
     --infile=X        Use specified input file as zone contents
+    --print-rrtype=X  Only print records of type X
+    --print-wildcard  Only print wildcard records
+
+Summarize the contents of a zone. However, if the --print-rrtype or
+--print-wildcard are specified, only the specified record types are
+printed, rather than a content summary.
 
 If specifying an input file as the source of the zone, it must be composed
 of 1 presentation format DNS RR per line, with no continuation lines.
@@ -150,6 +159,8 @@ def process_args(arguments):
         "server=",
         "tsig=",
         "infile=",
+        "print-rrtype=",
+        "print-wildcard",
     ]
 
     try:
@@ -168,6 +179,12 @@ def process_args(arguments):
             Opts.tsig = optval
         elif opt == "--infile":
             Opts.infile = optval
+        elif opt == "--print-rrtype":
+            Opts.summary = False
+            Opts.print_rrtype = optval
+        elif opt == "--print-wildcard":
+            Opts.summary = False
+            Opts.print_wildcard = True
 
     if Opts.server and Opts.infile:
         usage("Error: contradictory options specified: --server and --infile")
@@ -227,21 +244,51 @@ def get_input_stream(Opts):
                             stdout=subprocess.PIPE).stdout
 
 
-if __name__ == '__main__':
-
-    process_args(sys.argv[1:])
-    print_header(Opts)
-
-    s = ZoneStats(Opts.zone)
-
-    t1 = time.time()
-
+def get_next_line(Opts):
     for line in get_input_stream(Opts):
         line = line.decode().rstrip('\n')
         if not line or line.startswith(';'):
             continue
+        yield line
+
+
+def zone_summary(Opts):
+
+    print_header(Opts)
+    s = ZoneStats(Opts.zone)
+    t1 = time.time()
+
+    for line in get_next_line(Opts):
         s.update_rr(line)
 
     s.print_stats()
     t2 = time.time()
     print("\n### Elapsed time: %.2fs" % (t2-t1))
+
+
+def print_rrtype(Opts):
+    for line in get_next_line(Opts):
+        owner, ttl, rrclass, rrtype, rdata = line.split(None, 4)
+        if rrtype == Opts.print_rrtype.upper():
+            print(line)
+    return
+
+
+def print_wildcard(Opts):
+    for line in get_next_line(Opts):
+        owner, ttl, rrclass, rrtype, rdata = line.split(None, 4)
+        if owner.startswith('*.') and rrtype != 'RRSIG':
+            print(line)
+    return
+
+
+if __name__ == '__main__':
+
+    process_args(sys.argv[1:])
+
+    if Opts.summary:
+        zone_summary(Opts)
+    elif Opts.print_rrtype:
+        print_rrtype(Opts)
+    elif Opts.print_wildcard:
+        print_wildcard(Opts)

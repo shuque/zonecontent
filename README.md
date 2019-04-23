@@ -23,6 +23,12 @@ Usage: zonecontent.py [Options] <zonename> ...
                       (default server is 127.0.0.1)
     --tsig=X          Use TSIG algorithm:name:key specified in X
     --infile=X        Use specified input file as zone contents
+    --print-rrtype=X  Only print records of type X
+    --print-wildcard  Only print wildcard records
+
+Summarize the contents of a zone. However, if the --print-rrtype or
+--print-wildcard are specified, only the specified record types are
+printed, rather than a content summary.
 
 If specifying an input file as the source of the zone, it must be composed
 of 1 presentation format DNS RR per line, with no continuation lines.
