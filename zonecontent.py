@@ -276,7 +276,7 @@ def print_rrtype(Opts):
 
 def print_wildcard(Opts):
     for line in get_next_line(Opts):
-        owner, ttl, rrclass, rrtype, rdata = line.split(None, 4)
+        owner, _, _, rrtype, _ = line.split(None, 4)
         if owner.startswith('*.') and rrtype != 'RRSIG':
             print(line)
     return
